@@ -1,9 +1,7 @@
 services:
   web-ui:
-    image: nginx:alpine
+    image: ghcr.io/researchlaboratory-sinf-fst-uinsa/portainer-deploy-test:latest
     container_name: portainer-test-ui
     ports:
       - "8085:80"
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
     restart: unless-stopped
