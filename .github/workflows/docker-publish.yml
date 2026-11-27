@@ -3,6 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'docker-compose.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -12,7 +14,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -32,6 +34,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=sha,prefix=,format=short
             type=raw,value=latest
 
       - name: Build and push Docker image
@@ -41,3 +44,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Update docker-compose.yml with new image tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHORT_SHA}" | tr '[:upper:]' '[:lower:]')
+          sed -i "s|image: ghcr.io/.*|image: ${IMAGE_LOWER}|g" docker-compose.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docker-compose.yml
+          git commit -m "chore: update image tag to ${SHORT_SHA}"
+          git push
